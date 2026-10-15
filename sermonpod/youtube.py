@@ -37,7 +37,7 @@ def list_channel(source: Source, newest: int | None = None) -> list[dict]:
     optionally only the `newest` few of each (YouTube lists newest first)."""
     base = source.channel_url.rstrip("/")
     seen: dict[str, dict] = {}
-    extra = {"playlistend": newest} if newest else {}
+    extra = {"playlist_items": f"1-{newest}"} if newest else {}
     with yt_dlp.YoutubeDL(_ydl_opts(source, extract_flat="in_playlist", **extra)) as ydl:
         for tab in source.tabs:
             info = ydl.extract_info(f"{base}/{tab}", download=False)
