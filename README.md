@@ -28,7 +28,7 @@ Requires Python 3.11+ and `ffmpeg`.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .                    # add '.[deepfilter]' for the neural denoiser
-cp config.example.toml config.toml  # then edit it: channel_url, base_url, email
+cp config.example.toml config.toml  # then edit base_url and owner_email
 export ANTHROPIC_API_KEY=sk-ant-... # used for sermon boundaries and show notes
 ```
 

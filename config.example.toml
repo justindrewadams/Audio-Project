@@ -2,7 +2,7 @@
 
 [source]
 # The church's YouTube channel. Both the /videos and /streams tabs are scanned.
-channel_url = "https://www.youtube.com/@CHANGE-ME"
+channel_url = "https://www.youtube.com/@mountainhomechurchofchrist3397"
 preacher = "Joshua Adams"
 # Any of these (case-insensitive) in a video's title or description marks it as his.
 name_patterns = ["Joshua Adams", "Josh Adams", "Bro\\.? Adams", "Brother Adams"]
