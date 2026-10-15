@@ -12,7 +12,7 @@ SIZE = 3000
 FONTS = Path(__file__).resolve().parent.parent / "cloud" / "fonts"
 GOLD = (222, 178, 118)
 CREAM = (247, 240, 230)
-SHADOW = (24, 19, 16)   # background and fade colour: a warm near-black
+SHADOW = (14, 26, 48)   # background and fade colour: deep navy
 
 
 def _font(name: str, size: int, weight: int) -> ImageFont.FreeTypeFont:
