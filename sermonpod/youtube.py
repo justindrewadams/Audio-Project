@@ -104,12 +104,15 @@ def discover(source: Source, state: State, newest: int | None = None) -> list[di
     if not entries:
         raise RuntimeError(f"found no videos at {source.channel_url}. If this keeps happening, "
                            "YouTube is probably blocking this computer; see 'cookies' in the README.")
+    unreadable = tried = 0
     for entry in entries:
         vid = entry["id"]
         if state.get(vid):
             continue
+        tried += 1
         info = video_details(source, vid)
         if not info:
+            unreadable += 1
             log.warning("could not read %s (private, members-only, or upcoming)", vid)
             continue
         if info.get("live_status") in ("is_live", "is_upcoming", "post_live"):
@@ -117,6 +120,10 @@ def discover(source: Source, state: State, newest: int | None = None) -> list[di
         status, reason, record = classify(info, source, matcher)
         added.append(state.upsert(vid, status=status, reason=reason, named=status == "matched", **record))
         log.info("%-8s %s  %s", status, vid, record["title"])
+    if tried >= 3 and unreadable == tried:
+        raise RuntimeError(
+            f"YouTube refused all {tried} videos it was asked about. This usually means it is "
+            "blocking this computer as a bot; add YouTube cookies (see 'cookies' in the README).")
     return added
 
 

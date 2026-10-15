@@ -316,3 +316,10 @@ def test_cover_art_from_cutout(tmp_path):
     assert near(out.getpixel((60, 60)), SHADOW)          # solid background, no photo
     assert not near(out.getpixel((1500, 700)), SHADOW)  # the subject is there
     assert near(out.getpixel((2900, 2300)), SHADOW)     # title area is solid colour
+
+
+def test_discover_fails_loudly_when_youtube_blocks_everything(tmp_path, monkeypatch):
+    monkeypatch.setattr(youtube, "list_channel", lambda src, newest=None: [{"id": f"v{i}"} for i in range(5)])
+    monkeypatch.setattr(youtube, "video_details", lambda src, vid: None)  # "Sign in to confirm..."
+    with pytest.raises(RuntimeError, match="blocking"):
+        youtube.discover(Source(channel_url="x"), State(tmp_path / "s.json"))
