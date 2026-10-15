@@ -22,7 +22,7 @@ class SermonSpan:
     start: float
     end: float
     preacher: str = ""
-    is_target_preacher: bool | None = None  # None = unknown (heuristic)
+    preacher_match: str = "unknown"  # "yes" | "no" | "unknown"
     title: str = ""
     scripture: list[str] = field(default_factory=list)
     summary: str = ""
@@ -94,9 +94,11 @@ Report sermon boundaries by copying the timestamps of the first and last lines \
 of the sermon exactly as they appear.
 
 Identify the preacher from introductions ("our speaker this morning is..."), \
-self-references, or the video metadata. Say whether the preacher is the target \
-preacher named in the request; set false when someone else clearly preached, \
-and leave preacher empty if you cannot tell.
+self-references ("when I was growing up in..."), people addressing him by name, \
+or the video metadata. Set preacher_match to "yes" when the evidence points to \
+the target preacher named in the request, "no" when it points to someone else \
+(for example a guest speaker who is introduced), and "unknown" when nothing in \
+the service says who preached. Leave preacher empty if you cannot tell.
 
 For the show notes, give a concise sermon title (use the one the preacher or \
 video gives, if any), the main scripture references, and a 2-3 sentence summary \
@@ -109,14 +111,14 @@ SCHEMA = {
         "first_line_timestamp": {"type": "number"},
         "last_line_timestamp": {"type": "number"},
         "preacher": {"type": "string"},
-        "is_target_preacher": {"type": "boolean"},
+        "preacher_match": {"type": "string", "enum": ["yes", "no", "unknown"]},
         "title": {"type": "string"},
         "scripture": {"type": "array", "items": {"type": "string"}},
         "summary": {"type": "string"},
     },
     "required": [
         "sermon_found", "first_line_timestamp", "last_line_timestamp", "preacher",
-        "is_target_preacher", "title", "scripture", "summary",
+        "preacher_match", "title", "scripture", "summary",
     ],
     "additionalProperties": False,
 }
@@ -176,7 +178,7 @@ def snap_to_segments(segments: list[dict], data: dict) -> SermonSpan | None:
         start=first["start"],
         end=last["end"],
         preacher=data.get("preacher", ""),
-        is_target_preacher=data.get("is_target_preacher"),
+        preacher_match=data.get("preacher_match", "unknown"),
         title=data.get("title", ""),
         scripture=list(data.get("scripture", [])),
         summary=data.get("summary", ""),

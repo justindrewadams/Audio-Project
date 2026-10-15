@@ -1,15 +1,23 @@
 # Copy to config.toml and edit.
 
 [source]
-# The church's YouTube channel. Both the /videos and /streams tabs are scanned.
+# The church's YouTube channel.
 channel_url = "https://www.youtube.com/@mountainhomechurchofchrist3397"
+# Which channel tabs to scan: "streams" = the Live tab (full recorded services),
+# "videos" = regular uploads. The sermon is cut out of each full service.
+tabs = ["streams"]
 preacher = "Joshua Adams"
 # Any of these (case-insensitive) in a video's title or description marks it as his.
 name_patterns = ["Joshua Adams", "Josh Adams", "Bro\\.? Adams", "Brother Adams"]
-# Many church uploads are titled "Sunday AM Worship" with no speaker named.
-# When true, videos whose metadata doesn't name anyone are transcribed and
-# Claude decides from the service itself (introductions, etc.) whether he preached.
-check_unnamed_videos = false
+# Livestreams are usually titled "Sunday Morning Worship" with no speaker named.
+# When true, those services are transcribed too, and Claude works out from the
+# service itself (introductions, people addressing him, etc.) who preached.
+check_unnamed_videos = true
+# When Claude can't tell who preached an unnamed service:
+#   "include" - keep it (right if he preaches most services)
+#   "exclude" - skip it (use `sermonpod add VIDEO_ID` to pull in any it missed)
+# Services where someone else is clearly the speaker are always skipped.
+unknown_preacher = "include"
 # Ignore uploads older than this (YYYYMMDD), or leave empty for everything.
 since = ""
 # Skip videos shorter than this many minutes (announcements, clips).

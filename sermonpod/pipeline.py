@@ -31,10 +31,15 @@ def process_video(cfg: Config, state: State, video: dict) -> None:
     if span is None:
         state.upsert(vid, status="failed", reason="no sermon found in recording")
         return
-    if video["status"] == "unnamed" and span.is_target_preacher is not True:
-        who = span.preacher or "unknown speaker"
-        state.upsert(vid, status="rejected", reason=f"sermon preached by {who}")
-        return
+    if video["status"] == "unnamed":
+        if span.preacher_match == "no":
+            state.upsert(vid, status="rejected",
+                         reason=f"sermon preached by {span.preacher or 'someone else'}")
+            return
+        if span.preacher_match == "unknown" and cfg.source.unknown_preacher == "exclude":
+            state.upsert(vid, status="rejected", reason="could not tell who preached; "
+                         "use `sermonpod add` if it was him")
+            return
     if span.duration < 8 * 60:
         state.upsert(vid, status="failed",
                      reason=f"detected sermon only {span.duration / 60:.1f} min; set manual_start/end")

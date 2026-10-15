@@ -3,9 +3,11 @@
 Turns Joshua Adams's sermons on the Mountain Home church of Christ YouTube channel
 into a podcast:
 
-1. **Find**: scans the channel's Videos and Live tabs. A video is kept when its
-   title or description names the preacher. It can also check unnamed services
-   by having Claude listen for who preached.
+1. **Find**: scans the channel's Live tab, where each full worship service is
+   recorded. Livestream titles rarely name the speaker, so Claude works out from
+   each service who preached. It listens for introductions, people addressing
+   him by name, and similar clues. Services where someone else clearly preached
+   are skipped.
 2. **Download**: pulls the audio with `yt-dlp`.
 3. **Trim**: transcribes the service with Whisper. Claude then reads the
    timestamped transcript and marks where the sermon starts and ends, which cuts
@@ -80,9 +82,11 @@ aws s3 sync output/podcast s3://my-bucket/podcast --acl public-read
   of speaking-rate speech; congregational singing transcribes far slower than
   preaching. It works on most services, but check `sermonpod status` and fix any
   misses with `add --start/--end`.
-- `check_unnamed_videos = true` transcribes every service whose metadata names
-  no preacher. That is slow and uses API credits on each one, but it is the only
-  way to find sermons the channel didn't label.
+- **Who preached.** If a service never says who is speaking, `unknown_preacher`
+  decides what happens to it. `"include"` (the default) keeps it, which suits a
+  regular pulpit preacher. `"exclude"` skips it, and you can add any it missed
+  with `sermonpod add`. To also scan regular uploads, set
+  `tabs = ["streams", "videos"]`.
 
 ## Development
 

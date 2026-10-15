@@ -10,9 +10,11 @@ from pathlib import Path
 @dataclass
 class Source:
     channel_url: str
+    tabs: list[str] = field(default_factory=lambda: ["streams"])
     preacher: str = "Joshua Adams"
     name_patterns: list[str] = field(default_factory=lambda: ["Joshua Adams", "Josh Adams"])
-    check_unnamed_videos: bool = False
+    check_unnamed_videos: bool = True
+    unknown_preacher: str = "include"
     since: str = ""
     min_minutes: float = 15
     cookies_file: str = ""

@@ -101,12 +101,12 @@ def test_claude_span_snaps_to_segments():
     segs = fake_transcript()
     client = FakeClient({
         "sermon_found": True, "first_line_timestamp": 601.0, "last_line_timestamp": 2390.0,
-        "preacher": "Joshua Adams", "is_target_preacher": True, "title": "Living Faith",
+        "preacher": "Joshua Adams", "preacher_match": "yes", "title": "Living Faith",
         "scripture": ["James 2:14-26"], "summary": "A lesson on faith.",
     })
     span = segment.claude_span(segs, {"id": "x", "title": "t"}, "Joshua Adams", "claude-opus-5-5", client)
     assert (span.start, span.end) == (600.0, 2400.0)
-    assert span.title == "Living Faith" and span.is_target_preacher
+    assert span.title == "Living Faith" and span.preacher_match == "yes"
     req = client.calls[0]
     assert req["model"] == "claude-opus-5-5"
     assert "[600.0] word" in req["messages"][0]["content"]
@@ -194,3 +194,38 @@ def test_pipeline_end_to_end(tmp_path, monkeypatch):
     assert not (cfg.paths.audio_dir / "vid1.wav").exists()  # raw audio cleaned up
     root = ET.parse(cfg.paths.output_dir / "feed.xml").getroot()
     assert root.find("channel/item/enclosure").get("url") == f"https://ex.com/{ep['file']}"
+
+
+@pytest.mark.parametrize("match,policy,expected", [
+    ("yes", "exclude", "done"),
+    ("no", "include", "rejected"),
+    ("unknown", "include", "done"),
+    ("unknown", "exclude", "rejected"),
+])
+def test_unnamed_livestream_preacher_policy(tmp_path, monkeypatch, match, policy, expected):
+    from sermonpod import enhance as enh, pipeline, transcribe
+    from sermonpod.config import Config, Paths, Trim
+
+    monkeypatch.setattr(youtube, "download_audio", lambda *a: tmp_path / "raw.wav")
+    monkeypatch.setattr(transcribe, "transcribe", lambda *a: [])
+    monkeypatch.setattr(segment, "find_sermon", lambda *a: segment.SermonSpan(
+        start=600, end=2400, preacher="Someone" if match == "no" else "", preacher_match=match))
+
+    def fake_produce(raw, dst, *a, **k):
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(b"mp3")
+        return dst
+    monkeypatch.setattr(enh, "produce_episode", fake_produce)
+    monkeypatch.setattr(enh, "probe_duration", lambda p: 1800.0)
+
+    cfg = Config(
+        source=Source(channel_url="x", unknown_preacher=policy),
+        trim=Trim(), enhance=Enhance(),
+        podcast=Podcast(title="P", author="A", description="D", base_url="https://ex.com"),
+        paths=Paths(work_dir=tmp_path / "data", output_dir=tmp_path / "out"),
+    )
+    state = State(cfg.paths.state_file)
+    video = state.upsert("v", status="unnamed", title="Sunday Morning Worship",
+                         upload_date="20261011", url="https://youtu.be/v")
+    pipeline.process_video(cfg, state, video)
+    assert state.get("v")["status"] == expected

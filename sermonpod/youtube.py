@@ -13,9 +13,6 @@ from .state import State
 
 log = logging.getLogger(__name__)
 
-TABS = ("videos", "streams")
-
-
 def _ydl_opts(source: Source, **extra) -> dict:
     opts = {"quiet": True, "no_warnings": True, "ignoreerrors": True}
     if source.cookies_file:
@@ -34,11 +31,11 @@ def names_preacher(info: dict, matcher: re.Pattern) -> bool:
 
 
 def list_channel(source: Source) -> list[dict]:
-    """Flat listing (id + title) of every upload and past livestream."""
+    """Flat listing (id + title) of every video on the configured channel tabs."""
     base = source.channel_url.rstrip("/")
     seen: dict[str, dict] = {}
     with yt_dlp.YoutubeDL(_ydl_opts(source, extract_flat="in_playlist")) as ydl:
-        for tab in TABS:
+        for tab in source.tabs:
             info = ydl.extract_info(f"{base}/{tab}", download=False)
             for entry in (info or {}).get("entries") or []:
                 if entry and entry.get("id"):
