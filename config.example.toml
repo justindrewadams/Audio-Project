@@ -1,0 +1,55 @@
+# Copy to config.toml and edit.
+
+[source]
+# The church's YouTube channel. Both the /videos and /streams tabs are scanned.
+channel_url = "https://www.youtube.com/@CHANGE-ME"
+preacher = "Joshua Adams"
+# Any of these (case-insensitive) in a video's title or description marks it as his.
+name_patterns = ["Joshua Adams", "Josh Adams", "Bro\\.? Adams", "Brother Adams"]
+# Many church uploads are titled "Sunday AM Worship" with no speaker named.
+# When true, videos whose metadata doesn't name anyone are transcribed and
+# Claude decides from the service itself (introductions, etc.) whether he preached.
+check_unnamed_videos = false
+# Ignore uploads older than this (YYYYMMDD), or leave empty for everything.
+since = ""
+# Skip videos shorter than this many minutes (announcements, clips).
+min_minutes = 15
+# Optional path to a Netscape cookies.txt if YouTube asks you to sign in.
+cookies_file = ""
+
+[trim]
+# "claude" reads the timestamped transcript and finds the sermon boundaries.
+# "heuristic" uses speaking-rate analysis (no API key needed, less accurate).
+method = "claude"
+model = "claude-opus-5-5"
+whisper_model = "small.en"   # tiny.en / base.en / small.en / medium.en / large-v3
+# Seconds of padding kept before/after the detected sermon.
+pad_seconds = 1.5
+
+[enhance]
+# "deepfilternet" (best; pip install 'sermonpod[deepfilter]'), "ffmpeg", or "none"
+denoiser = "ffmpeg"
+target_lufs = -16.0          # Apple/Spotify spoken-word standard
+true_peak = -1.5
+bitrate = "96k"              # mono MP3; 96k is transparent for speech
+sample_rate = 44100
+
+[podcast]
+title = "Joshua Adams Sermons"
+author = "Joshua Adams"
+description = "Sermons preached by Joshua Adams at the Mountain Home church of Christ."
+language = "en-us"
+category = "Religion & Spirituality"
+subcategory = "Christianity"
+explicit = false
+owner_name = "Joshua Adams"
+owner_email = "you@example.com"
+# Public URL where the contents of output/podcast/ will be hosted
+# (GitHub Pages, S3, Cloudflare R2, Netlify, ...). No trailing slash.
+base_url = "https://example.com/podcast"
+# Square JPG/PNG, 1400-3000px. Put the file in output/podcast/ and name it here.
+image = "cover.jpg"
+
+[paths]
+work_dir = "data"
+output_dir = "output/podcast"

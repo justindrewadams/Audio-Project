@@ -1,0 +1,29 @@
+[project]
+name = "sermonpod"
+version = "0.1.0"
+description = "Find Joshua Adams sermons on YouTube, trim them, enhance the audio and publish a podcast feed."
+requires-python = ">=3.11"
+dependencies = [
+    "yt-dlp>=2025.1.1",
+    "faster-whisper>=1.0",
+    "anthropic>=1.0",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+# Neural speech enhancement (better than the built-in ffmpeg denoiser, needs PyTorch).
+deepfilter = ["deepfilternet>=0.5"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+sermonpod = "sermonpod.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["sermonpod*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
