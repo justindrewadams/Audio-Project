@@ -23,6 +23,9 @@ class Source:
     since: str = ""
     min_minutes: float = 15
     cookies_file: str = ""
+    # Route YouTube traffic through this proxy, e.g. "http://user:pass@host:port".
+    # The SERMONPOD_PROXY environment variable overrides it (keeps passwords out of files).
+    proxy: str = ""
 
 
 @dataclass

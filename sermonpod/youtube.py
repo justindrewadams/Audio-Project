@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,6 +20,9 @@ def _ydl_opts(source: Source, **extra) -> dict:
     opts = {"quiet": True, "no_warnings": True, "ignoreerrors": True}
     if source.cookies_file and Path(source.cookies_file).exists():
         opts["cookiefile"] = source.cookies_file
+    proxy = os.environ.get("SERMONPOD_PROXY") or source.proxy
+    if proxy:
+        opts["proxy"] = proxy
     opts.update(extra)
     return opts
 

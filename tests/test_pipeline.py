@@ -323,3 +323,10 @@ def test_discover_fails_loudly_when_youtube_blocks_everything(tmp_path, monkeypa
     monkeypatch.setattr(youtube, "video_details", lambda src, vid: None)  # "Sign in to confirm..."
     with pytest.raises(RuntimeError, match="blocking"):
         youtube.discover(Source(channel_url="x"), State(tmp_path / "s.json"))
+
+
+def test_proxy_from_environment(monkeypatch):
+    monkeypatch.setenv("SERMONPOD_PROXY", "http://u:p@proxy.example:8080")
+    assert youtube._ydl_opts(Source(channel_url="x"))["proxy"] == "http://u:p@proxy.example:8080"
+    monkeypatch.delenv("SERMONPOD_PROXY")
+    assert "proxy" not in youtube._ydl_opts(Source(channel_url="x"))
