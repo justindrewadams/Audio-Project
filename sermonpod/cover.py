@@ -12,7 +12,7 @@ SIZE = 3000
 FONTS = Path(__file__).resolve().parent.parent / "cloud" / "fonts"
 GOLD = (222, 178, 118)
 CREAM = (247, 240, 230)
-SHADOW = (12, 9, 7)
+SHADOW = (24, 19, 16)   # background and fade colour: a warm near-black
 
 
 def _font(name: str, size: int, weight: int) -> ImageFont.FreeTypeFont:
@@ -57,6 +57,34 @@ def _fit_photo(photo: Image.Image, focus_y: float, height: float) -> Image.Image
     return bg
 
 
+def _has_cutout(photo: Image.Image) -> bool:
+    """True for a photo whose background has already been removed (transparent PNG)."""
+    return photo.mode in ("RGBA", "LA") and photo.getchannel("A").getextrema()[0] < 16
+
+
+def _place_cutout(photo: Image.Image, background: tuple, height: float) -> Image.Image:
+    """Put a cut-out subject on a solid background, top-centred. Where the photo's
+    own frame cuts him off (shoulders at the sides), feather it away so there are
+    no hard edges."""
+    photo = ImageOps.exif_transpose(photo).convert("RGBA")
+    photo = photo.crop(photo.getchannel("A").getbbox())
+    fh = int(SIZE * height)
+    fw = min(round(photo.width * fh / photo.height), SIZE)
+    subject = photo.resize((fw, fh), Image.LANCZOS)
+    subject = subject.filter(ImageFilter.UnsharpMask(radius=4, percent=50, threshold=2))
+
+    alpha = np.asarray(subject.getchannel("A"), dtype=np.float32)
+    feather = int(SIZE * 0.08)
+    edge = np.linspace(0, 1, feather, dtype=np.float32)
+    ramp = np.ones(fw, dtype=np.float32)
+    ramp[:feather], ramp[-feather:] = edge, edge[::-1]
+    subject.putalpha(Image.fromarray((alpha * ramp).astype(np.uint8)))
+
+    canvas = Image.new("RGB", (SIZE, SIZE), background)
+    canvas.paste(subject, ((SIZE - fw) // 2, int(SIZE * 0.05)), subject)
+    return canvas
+
+
 def _spaced(draw: ImageDraw.ImageDraw, text: str, font, tracking: float) -> float:
     return sum(draw.textlength(c, font=font) for c in text) + tracking * (len(text) - 1)
 
@@ -70,25 +98,31 @@ def _draw_spaced(draw, xy, text, font, fill, tracking):
 
 def make_cover(photo_path: Path, out_path: Path, *, kicker: str = "SERMONS", name: str = "Joshua Adams",
                footer: str = "MOUNTAIN HOME CHURCH OF CHRIST", focus_y: float = 0.2,
-               photo_height: float = 0.88) -> Path:
-    base = _fit_photo(Image.open(photo_path), focus_y, photo_height)
-    # quiet, warm photo so the type carries the design
-    base = ImageEnhance.Color(base).enhance(0.85)
-    base = ImageEnhance.Contrast(base).enhance(1.05)
-    warm = Image.new("RGB", base.size, (60, 40, 25))
-    base = Image.blend(base, warm, 0.10)
+               photo_height: float = 0.88, background: tuple = SHADOW) -> Path:
+    photo = Image.open(photo_path)
+    if _has_cutout(photo):
+        # smaller, and faded out before the title so the type sits on solid colour
+        base = _place_cutout(photo, background, photo_height * 0.9)
+        fade_start, fade_len, fade_max = 0.48, 0.22, 1.0
+    else:
+        fade_start, fade_len, fade_max = 0.36, 0.40, 0.97
+        base = _fit_photo(photo, focus_y, photo_height)
+        # quiet, warm photo so the type carries the design
+        base = ImageEnhance.Color(base).enhance(0.85)
+        base = ImageEnhance.Contrast(base).enhance(1.05)
+        base = Image.blend(base, Image.new("RGB", base.size, (60, 40, 25)), 0.10)
 
     # bottom gradient for the type, plus a soft vignette
     shade = Image.new("L", (1, SIZE))
     for y in range(SIZE):
-        t = min(1.0, max(0.0, (y - SIZE * 0.36) / (SIZE * 0.40)))
-        shade.putpixel((0, y), int(255 * 0.97 * t * t * (3 - 2 * t)))  # smoothstep
+        t = min(1.0, max(0.0, (y - SIZE * fade_start) / (SIZE * fade_len)))
+        shade.putpixel((0, y), int(255 * fade_max * t * t * (3 - 2 * t)))  # smoothstep
     shade = shade.resize((SIZE, SIZE))
     vignette = Image.new("L", (SIZE, SIZE), 0)
     ImageDraw.Draw(vignette).ellipse((-SIZE * 0.25, -SIZE * 0.3, SIZE * 1.25, SIZE * 1.15), fill=255)
     vignette = ImageOps.invert(vignette.filter(ImageFilter.GaussianBlur(SIZE * 0.12))).point(lambda v: v * 0.55)
     mask = Image.fromarray(np.maximum(np.asarray(shade), np.asarray(vignette)))
-    img = Image.composite(Image.new("RGB", base.size, SHADOW), base, mask)
+    img = Image.composite(Image.new("RGB", base.size, background), base, mask)
 
     draw = ImageDraw.Draw(img)
     margin = 200

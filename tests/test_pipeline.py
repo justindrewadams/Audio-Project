@@ -301,3 +301,18 @@ def test_cover_art_from_portrait(tmp_path):
     assert img.size == (3000, 3000) and img.format == "JPEG"
     # bottom band is darkened for the title; top keeps the photo
     assert sum(img.getpixel((1500, 2900))) < 120 < sum(img.getpixel((1500, 300)))
+
+
+def test_cover_art_from_cutout(tmp_path):
+    from PIL import Image, ImageDraw
+    from sermonpod.cover import SHADOW, make_cover
+
+    photo = tmp_path / "cutout.png"
+    img = Image.new("RGBA", (500, 600), (0, 0, 0, 0))  # transparent background
+    ImageDraw.Draw(img).ellipse((150, 40, 350, 300), fill=(200, 160, 130, 255))  # "head"
+    img.save(photo)
+    out = Image.open(make_cover(photo, tmp_path / "cover.jpg")).convert("RGB")
+    near = lambda px, ref: all(abs(a - b) <= 6 for a, b in zip(px, ref))
+    assert near(out.getpixel((60, 60)), SHADOW)          # solid background, no photo
+    assert not near(out.getpixel((1500, 700)), SHADOW)  # the subject is there
+    assert near(out.getpixel((2900, 2300)), SHADOW)     # title area is solid colour

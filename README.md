@@ -58,8 +58,10 @@ GitHub emails you, and notifies you in its app, if a run fails.
 the photo, and name it `photo.jpg` inside the `cloud` folder (`cloud/photo.jpg`).
 The next run turns it into 3000×3000 cover art: the photo full-bleed, with
 "SERMONS / Joshua Adams / Mountain Home church of Christ" set over a dark
-fade at the bottom. On a computer, `sermonpod cover photo.jpg` makes the
-same image locally.
+fade at the bottom. If the photo is a PNG with its background removed
+(`cloud/photo.png`, as it is now), he's placed on a solid dark background
+instead. On a computer, `sermonpod cover photo.png` makes the same image
+locally.
 
 **If YouTube blocks GitHub's servers** (the run fails with "found no videos" or
 "Sign in to confirm you're not a bot"), add your YouTube cookies. On any
