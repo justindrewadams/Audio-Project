@@ -6,6 +6,12 @@ channel_url = "https://www.youtube.com/@mountainhomechurchofchrist3397"
 # Which channel tabs to scan: "streams" = the Live tab (full recorded services),
 # "videos" = regular uploads. The sermon is cut out of each full service.
 tabs = ["streams"]
+# Only Sunday services (AM and PM) become episodes, judged in the church's time zone.
+days = ["Sunday"]
+timezone = "America/Chicago"
+# Skip classes (Sunday morning Bible class, Wednesday night class) by title.
+# Classes that aren't labeled are caught when the recording is analyzed.
+exclude_patterns = ["\\bclass\\b", "bible study"]
 preacher = "Joshua Adams"
 # Any of these (case-insensitive) in a video's title or description marks it as his.
 name_patterns = ["Joshua Adams", "Josh Adams", "Bro\\.? Adams", "Brother Adams"]

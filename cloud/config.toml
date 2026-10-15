@@ -1,0 +1,77 @@
+# Settings used by the scheduled GitHub run (.github/workflows/sermonpod.yml).
+
+[source]
+# The church's YouTube channel.
+channel_url = "https://www.youtube.com/@mountainhomechurchofchrist3397"
+# Which channel tabs to scan: "streams" = the Live tab (full recorded services),
+# "videos" = regular uploads. The sermon is cut out of each full service.
+tabs = ["streams"]
+# Only Sunday services (AM and PM) become episodes, judged in the church's time zone.
+days = ["Sunday"]
+timezone = "America/Chicago"
+# Skip classes (Sunday morning Bible class, Wednesday night class) by title.
+# Classes that aren't labeled are caught when the recording is analyzed.
+exclude_patterns = ["\\bclass\\b", "bible study"]
+preacher = "Joshua Adams"
+# Any of these (case-insensitive) in a video's title or description marks it as his.
+name_patterns = ["Joshua Adams", "Josh Adams", "Bro\\.? Adams", "Brother Adams"]
+# Livestreams are usually titled "Sunday Morning Worship" with no speaker named.
+# When true, those services are transcribed too, and Claude works out from the
+# service itself (introductions, people addressing him, etc.) who preached.
+check_unnamed_videos = true
+# When neither his voice profile nor the service itself settles who preached:
+#   "include" - keep it (right for the regular preacher)
+#   "exclude" - skip it (use `sermonpod add VIDEO_ID` to pull in any it missed)
+unknown_preacher = "include"
+# Ignore uploads older than this (YYYYMMDD), or leave empty for everything.
+since = "20260701"   # how far back to go; older services are skipped
+# Skip videos shorter than this many minutes (announcements, clips).
+min_minutes = 15
+# Optional path to a Netscape cookies.txt if YouTube asks you to sign in.
+cookies_file = "cookies.txt"   # written from the YT_COOKIES secret, if set
+
+[trim]
+# "claude" reads the timestamped transcript and finds the sermon boundaries.
+# "heuristic" uses speaking-rate analysis (no API key needed, less accurate).
+method = "claude"
+model = "claude-opus-5-5"
+whisper_model = "small.en"   # tiny.en / base.en / small.en / medium.en / large-v3
+# Seconds of padding kept before/after the detected sermon.
+pad_seconds = 1.5
+
+[enhance]
+# "deepfilternet" (best; pip install 'sermonpod[deepfilter]'), "ffmpeg", or "none"
+denoiser = "ffmpeg"
+target_lufs = -16.0          # Apple/Spotify spoken-word standard
+true_peak = -1.5
+bitrate = "96k"              # mono MP3; 96k is transparent for speech
+sample_rate = 44100
+
+[voice]
+# Recognize him by his voice. The profile builds itself: once a few services
+# have been processed it finds the voice that preaches most of them, then keeps
+# learning from every sermon confirmed as his. See `sermonpod voice status`.
+enabled = true
+min_sermons = 3        # enrolled sermons needed before the voice gets a say
+auto_enroll = true
+threshold = 0          # 0 = calibrate automatically from his voice vs. others
+
+[podcast]
+title = "Joshua Adams Sermons"
+author = "Joshua Adams"
+description = "Sermons preached by Joshua Adams at the Mountain Home church of Christ."
+language = "en-us"
+category = "Religion & Spirituality"
+subcategory = "Christianity"
+explicit = false
+owner_name = "Joshua Adams"
+owner_email = ""   # set the OWNER_EMAIL repository variable
+# The status page and feed are on GitHub Pages; the MP3s are release files.
+base_url = "https://justindrewadams.github.io/Audio-Project"
+audio_base_url = "https://github.com/justindrewadams/Audio-Project/releases/download/episodes"
+manage_url = "https://github.com/justindrewadams/Audio-Project/actions/workflows/sermonpod.yml"
+image = "cover.jpg"
+
+[paths]
+work_dir = "data"
+output_dir = "output/podcast"

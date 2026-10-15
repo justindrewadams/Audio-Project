@@ -36,8 +36,21 @@ def _pub_date(upload_date: str) -> str:
     return format_datetime(dt)
 
 
+def enclosure_url(podcast: Podcast, ep: dict) -> str:
+    if podcast.audio_base_url:
+        return f"{podcast.audio_base_url.rstrip('/')}/{Path(ep['file']).name}"
+    return f"{podcast.base_url.rstrip('/')}/{ep['file']}"
+
+
+def service_label(ep: dict) -> str:
+    """e.g. "Sunday AM, October 12, 2026"."""
+    date = datetime.strptime(ep["upload_date"], "%Y%m%d")
+    day = " ".join(filter(None, [date.strftime("%A"), ep.get("service", "")]))
+    return f"{day}, {date.strftime('%B')} {date.day}, {date.year}"
+
+
 def episode_notes(ep: dict) -> str:
-    parts = []
+    parts = [f"<p>{html.escape(service_label(ep))}</p>"]
     if ep.get("summary"):
         parts.append(f"<p>{html.escape(ep['summary'])}</p>")
     if ep.get("scripture"):
@@ -86,7 +99,7 @@ def build_feed(podcast: Podcast, episodes: list[dict], out_dir: Path) -> Path:
         _sub(item, f"{{{CONTENT}}}encoded", notes)
         if ep.get("summary"):
             _sub(item, f"{{{ITUNES}}}summary", ep["summary"])
-        _sub(item, "enclosure", url=f"{base}/{ep['file']}", length=ep["bytes"], type="audio/mpeg")
+        _sub(item, "enclosure", url=enclosure_url(podcast, ep), length=ep["bytes"], type="audio/mpeg")
         _sub(item, "guid", f"youtube:{ep['id']}", isPermaLink="false")
         _sub(item, "pubDate", _pub_date(ep["upload_date"]))
         _sub(item, f"{{{ITUNES}}}duration", _hms(ep["episode_duration"]))

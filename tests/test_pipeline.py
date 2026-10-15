@@ -231,3 +231,60 @@ def test_unnamed_livestream_preacher_policy(tmp_path, monkeypatch, match, policy
                          upload_date="20261011", url="https://youtu.be/v")
     pipeline.process_video(cfg, state, video)
     assert state.get("v")["status"] == expected
+
+
+# ---------------------------------------------------------------- sunday services only
+
+def _ts(iso):
+    from datetime import datetime
+    return int(datetime.fromisoformat(iso).timestamp())
+
+
+@pytest.mark.parametrize("title,start,expected,reason", [
+    # Sunday 6pm Central is already Monday in UTC; it must still count as Sunday PM
+    ("Sunday Evening Worship", "2026-10-12T00:05:00+00:00", "unnamed", ""),
+    ("Sunday Morning Worship", "2026-10-11T15:30:00+00:00", "unnamed", ""),
+    ("Sunday Morning Bible Class", "2026-10-11T14:30:00+00:00", "rejected", "excluded"),
+    ("Wednesday Night Class", "2026-10-15T00:00:00+00:00", "rejected", "Wednesday"),
+    ("Midweek Devotional", "2026-10-15T00:00:00+00:00", "rejected", "Wednesday"),
+])
+def test_only_sunday_services(title, start, expected, reason):
+    src = Source(channel_url="x")
+    info = {"id": "v", "title": title, "duration": 3600, "release_timestamp": _ts(start),
+            "upload_date": "20261012"}
+    status, why, record = youtube.classify(info, src, youtube.compile_matcher(src.name_patterns))
+    assert status == expected and reason in why
+    if expected != "rejected":
+        assert record["weekday"] == "Sunday" and record["upload_date"] == "20261011"
+        assert record["service"] == ("PM" if "Evening" in title else "AM")
+
+
+def test_claude_reports_bible_class():
+    client = FakeClient({
+        "recording": "bible_class", "sermon_found": False, "first_line_timestamp": 0,
+        "last_line_timestamp": 0, "preacher": "", "preacher_match": "unknown", "title": "",
+        "scripture": [], "summary": "",
+    })
+    span = segment.claude_span(fake_transcript(), {"id": "x"}, "Joshua Adams", "m", client)
+    assert span.recording == "bible_class" and span.duration == 0
+    assert "Bible classes" in client.calls[0]["system"]
+
+
+def test_status_page_and_release_audio(tmp_path):
+    from sermonpod import site
+    pod = Podcast(title="Sermons", author="A", description="d", base_url="https://ex.github.io/repo",
+                  audio_base_url="https://github.com/o/r/releases/download/episodes", image="cover.jpg")
+    videos = [
+        {"id": "a", "status": "done", "title": "t", "episode_title": "Living Faith", "upload_date": "20261011",
+         "service": "AM", "file": "episodes/20261011-living-faith.mp3", "bytes": 1, "episode_duration": 1800,
+         "url": "https://youtu.be/a", "voice_score": 0.81},
+        {"id": "bbbbbbbbbbb", "status": "review", "title": "Sunday PM", "upload_date": "20261011",
+         "service": "PM", "url": "https://youtu.be/b", "reason": "voice doesn't match"},
+    ]
+    assert feed.enclosure_url(pod, videos[0]) == \
+        "https://github.com/o/r/releases/download/episodes/20261011-living-faith.mp3"
+    page = site.build_site(pod, videos, tmp_path, "https://github.com/o/r/actions").read_text()
+    assert "podcasts://ex.github.io/repo/feed.xml" in page
+    assert "Sunday AM, October 11, 2026" in page
+    assert "Needs your decision" in page and "bbbbbbbbbbb" in page
+    assert "releases/download/episodes/20261011-living-faith.mp3" in page

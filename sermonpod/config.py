@@ -14,6 +14,11 @@ class Source:
     preacher: str = "Joshua Adams"
     name_patterns: list[str] = field(default_factory=lambda: ["Joshua Adams", "Josh Adams"])
     check_unnamed_videos: bool = True
+    # Only services on these days (in the church's local time) become episodes.
+    days: list[str] = field(default_factory=lambda: ["Sunday"])
+    timezone: str = "America/Chicago"
+    # Videos whose title matches any of these are skipped (case-insensitive regex).
+    exclude_patterns: list[str] = field(default_factory=lambda: [r"\bclass\b", r"bible study"])
     unknown_preacher: str = "include"
     since: str = ""
     min_minutes: float = 15
@@ -69,6 +74,11 @@ class Podcast:
     owner_name: str = ""
     owner_email: str = ""
     image: str = ""
+    # Where the MP3s are served from, if not next to feed.xml (e.g. a GitHub release:
+    # https://github.com/OWNER/REPO/releases/download/episodes). Empty = base_url.
+    audio_base_url: str = ""
+    # Link on the status page for approving/rejecting and running by hand.
+    manage_url: str = ""
 
 
 @dataclass

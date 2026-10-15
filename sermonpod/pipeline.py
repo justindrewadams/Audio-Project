@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 
-from . import enhance, feed, segment, transcribe, voice, youtube
+from . import enhance, feed, segment, site, transcribe, voice, youtube
 from .config import Config
 from .state import State
 
@@ -75,6 +75,11 @@ def process_video(cfg: Config, state: State, video: dict) -> None:
                                    cfg.trim.method, cfg.trim.model)
     if span is None:
         state.upsert(vid, status="failed", reason="no sermon found in recording")
+        return
+    if span.duration <= 0:
+        reason = {"bible_class": "recording is a Bible class",
+                  "other": "recording is not a worship service"}.get(span.recording, "no sermon in this service")
+        state.upsert(vid, status="rejected", reason=reason)
         return
 
     profile, score, voice_match = None, None, "unknown"
@@ -183,7 +188,7 @@ def confirm(cfg: Config, state: State, video_ids: list[str], is_him: bool) -> No
         if is_him:
             if profile.has_embeddings(vid):
                 profile.enroll(vid)
-            if v.get("file") and (cfg.paths.output_dir / v["file"]).exists():
+            if v.get("file"):  # already produced and published
                 state.upsert(vid, status="done", reason="confirmed as his", confirmed=True)
             else:
                 state.upsert(vid, status="matched", reason="confirmed as his", confirmed=True, forced=True)
@@ -229,5 +234,6 @@ def run(cfg: Config, *, discover: bool = True, limit: int | None = None,
 
 def write_feed(cfg: Config, state: State):
     path = feed.build_feed(cfg.podcast, state.with_status("done"), cfg.paths.output_dir)
+    site.build_site(cfg.podcast, list(state.videos.values()), cfg.paths.output_dir, cfg.podcast.manage_url)
     log.info("feed written to %s (%d episodes)", path, len(state.with_status("done")))
     return path

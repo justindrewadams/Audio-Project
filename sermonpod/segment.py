@@ -23,6 +23,7 @@ class SermonSpan:
     end: float
     preacher: str = ""
     preacher_match: str = "unknown"  # "yes" | "no" | "unknown"
+    recording: str = "worship_service"  # "worship_service" | "bible_class" | "other"
     title: str = ""
     scripture: list[str] = field(default_factory=list)
     summary: str = ""
@@ -83,7 +84,15 @@ prayers, scripture reading, the Lord's Supper, announcements, a sermon, and an \
 invitation song. The transcript was machine-generated, so song lyrics may be \
 garbled and names misspelled.
 
-Find the sermon: the main lesson delivered by one preacher. It starts where the \
+The congregation also holds Bible classes (Sunday morning before worship, and \
+Wednesday night). Classes are not sermons: a teacher works through a text, often \
+takes questions or comments from the class, and there is usually no Lord's Supper \
+or invitation. A recording may be only a class, only a worship service, or a \
+class followed by the worship service. Report what the recording is, and never \
+choose the class lesson as the sermon; if the recording contains no worship \
+service, set sermon_found to false.
+
+Find the sermon: the main lesson delivered by one preacher in the worship service. It starts where the \
 preacher begins his lesson (include his own opening remarks and his reading of \
 the sermon text, but not a separate scripture reading by someone else or the \
 song before it). It ends with his closing words and invitation appeal, before \
@@ -107,6 +116,8 @@ written for podcast listeners."""
 SCHEMA = {
     "type": "object",
     "properties": {
+        "recording": {"type": "string", "enum": ["worship_service", "bible_class",
+                                                    "class_then_worship", "other"]},
         "sermon_found": {"type": "boolean"},
         "first_line_timestamp": {"type": "number"},
         "last_line_timestamp": {"type": "number"},
@@ -117,7 +128,7 @@ SCHEMA = {
         "summary": {"type": "string"},
     },
     "required": [
-        "sermon_found", "first_line_timestamp", "last_line_timestamp", "preacher",
+        "recording", "sermon_found", "first_line_timestamp", "last_line_timestamp", "preacher",
         "preacher_match", "title", "scripture", "summary",
     ],
     "additionalProperties": False,
@@ -160,8 +171,8 @@ def claude_span(segments: list[dict], video: dict, target_preacher: str, model: 
         return None
     text = next(b.text for b in response.content if b.type == "text")
     data = json.loads(text)
-    if not data["sermon_found"]:
-        return None
+    if data.get("recording") == "bible_class" or not data["sermon_found"]:
+        return SermonSpan(start=0, end=0, recording=data.get("recording", "other"), method="claude")
     return snap_to_segments(segments, data)
 
 
@@ -179,6 +190,7 @@ def snap_to_segments(segments: list[dict], data: dict) -> SermonSpan | None:
         end=last["end"],
         preacher=data.get("preacher", ""),
         preacher_match=data.get("preacher_match", "unknown"),
+        recording="worship_service",
         title=data.get("title", ""),
         scripture=list(data.get("scripture", [])),
         summary=data.get("summary", ""),
@@ -191,10 +203,9 @@ def find_sermon(segments: list[dict], video: dict, target_preacher: str, method:
     if method == "claude":
         try:
             span = claude_span(segments, video, target_preacher, model)
-            if span:
-                return span
-            log.warning("Claude found no sermon in %s", video.get("id"))
-            return None
+            if span is None:
+                log.warning("Claude could not analyze %s", video.get("id"))
+            return span
         except Exception as e:  # missing key, network, bad JSON: fall back
             log.warning("Claude analysis failed for %s (%s); using heuristic", video.get("id"), e)
     return heuristic_span(segments)

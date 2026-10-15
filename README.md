@@ -22,7 +22,46 @@ into a podcast:
 Runs are incremental. `data/state.json` records every video it has seen, so
 each run only processes new uploads.
 
-## Setup
+## Running it from your phone (GitHub, no computer needed)
+
+The workflow in `.github/workflows/sermonpod.yml` runs every Sunday night on
+GitHub's servers. It checks the Live tab for that day's AM and PM services,
+skips the classes, and adds the sermons to the podcast. You'll find:
+
+- **Episodes** in Apple Podcasts, as soon as you've subscribed once
+- **A status page** at https://justindrewadams.github.io/Audio-Project, with a
+  subscribe button, players, and anything waiting for your decision
+- **Controls** in the GitHub app under Actions → Sermon podcast → Run workflow:
+  `voice yes` / `voice no` / `add` / `retry` / `backfill`, plus a video ID
+
+### One-time setup (all doable in Safari on your phone)
+
+1. **Make the repo public.** In Settings → General → Danger Zone, choose
+   *Change visibility* → Public. Podcast apps can only download episodes from a
+   public repo. The code holds nothing secret, and your keys stay in encrypted
+   secrets.
+2. **Turn on Pages.** In Settings → Pages → Source, choose **GitHub Actions**.
+3. **Add your Claude key.** In Settings → Secrets and variables → Actions →
+   *New repository secret*, name it `ANTHROPIC_API_KEY`.
+4. **Add an email for the feed.** In the same place, on the *Variables* tab, add
+   `OWNER_EMAIL`. Apple and Spotify send ownership confirmations to it.
+5. **Run it once.** In Actions → Sermon podcast → **Run workflow** → `run`.
+   The first run goes back to July 1 (`since` in `cloud/config.toml`) and does
+   up to 8 services. Use `backfill` to catch up faster.
+6. **Subscribe.** On the status page, tap **Open in Apple Podcasts**. To list it
+   publicly in Apple Podcasts or Spotify, submit the feed URL once in Apple
+   Podcasts Connect or Spotify for Creators.
+
+GitHub emails you, and notifies you in its app, if a run fails.
+
+**If YouTube blocks GitHub's servers** (the run fails with "found no videos" or
+"Sign in to confirm you're not a bot"), add your YouTube cookies. On any
+computer, sign in to YouTube and export cookies with a "Get cookies.txt"
+browser extension. Paste the file's contents into a secret named
+`YT_COOKIES`. This needs a computer once; after that it runs on its own.
+
+## Running it on a computer
+
 
 Requires Python 3.11+ and `ffmpeg`.
 
