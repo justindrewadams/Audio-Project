@@ -135,7 +135,13 @@ jobs:
         if: always()
         run: |
           [ -f output/podcast/feed.xml ] || sermonpod -c "$CONFIG" feed
-          cp cloud/cover.jpg output/podcast/
+          # cover art: built from his photo if one has been uploaded, else the plain cover
+          photo=$(ls cloud/photo.* 2>/dev/null | head -1)
+          if [ -n "$photo" ]; then
+            sermonpod cover "$photo" -o output/podcast/cover.jpg
+          else
+            cp cloud/cover.jpg output/podcast/
+          fi
           rm -rf output/podcast/episodes   # audio is served from the release
 
       - uses: actions/upload-pages-artifact@v3

@@ -57,9 +57,9 @@ auto_enroll = true
 threshold = 0          # 0 = calibrate automatically from his voice vs. others
 
 [podcast]
-title = "Joshua Adams Sermons"
+title = "Sermons - Joshua Adams"
 author = "Joshua Adams"
-description = "Sermons preached by Joshua Adams at the Mountain Home church of Christ."
+description = "Sermons by Joshua Adams from Mountain Home church of Christ located in Mountain Home Arkansas. For more information, visit mountainhome.church"
 language = "en-us"
 category = "Religion & Spirituality"
 subcategory = "Christianity"

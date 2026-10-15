@@ -288,3 +288,16 @@ def test_status_page_and_release_audio(tmp_path):
     assert "Sunday AM, October 11, 2026" in page
     assert "Needs your decision" in page and "bbbbbbbbbbb" in page
     assert "releases/download/episodes/20261011-living-faith.mp3" in page
+
+
+def test_cover_art_from_portrait(tmp_path):
+    from PIL import Image
+    from sermonpod.cover import make_cover
+
+    photo = tmp_path / "portrait.jpg"
+    Image.new("RGB", (1200, 1800), (180, 150, 120)).save(photo)  # tall portrait
+    out = make_cover(photo, tmp_path / "cover.jpg")
+    img = Image.open(out)
+    assert img.size == (3000, 3000) and img.format == "JPEG"
+    # bottom band is darkened for the title; top keeps the photo
+    assert sum(img.getpixel((1500, 2900))) < 120 < sum(img.getpixel((1500, 300)))

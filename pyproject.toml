@@ -8,7 +8,8 @@ dependencies = [
     "faster-whisper>=1.0",
     "anthropic>=1.0",
     "numpy>=1.26",
-    "sherpa-onnx>=1.10",   # speaker-recognition model for the voice profile
+    "sherpa-onnx>=1.10",
+    "pillow>=10",          # cover art   # speaker-recognition model for the voice profile
 ]
 
 [project.optional-dependencies]

@@ -34,6 +34,12 @@ def main(argv: list[str] | None = None) -> None:
     retry = sub.add_parser("retry", help="re-queue a failed or rejected video")
     retry.add_argument("video_id")
 
+    cov = sub.add_parser("cover", help="make 3000x3000 podcast cover art from a photo")
+    cov.add_argument("photo")
+    cov.add_argument("-o", "--output", default="cover.jpg")
+    cov.add_argument("--focus", type=float, default=0.2,
+                     help="for tall photos: which part to keep, 0 = top, 1 = bottom (default 0.2)")
+
     vp = sub.add_parser("voice", help="manage the preacher's voice profile")
     vsub = vp.add_subparsers(dest="voice_cmd", required=True)
     vsub.add_parser("status", help="show the profile and every video's voice score")
@@ -47,6 +53,12 @@ def main(argv: list[str] | None = None) -> None:
     args = p.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(levelname)-7s %(message)s")
+    if args.cmd == "cover":  # needs no config
+        from pathlib import Path
+
+        from .cover import make_cover
+        print(make_cover(Path(args.photo), Path(args.output), focus_y=args.focus))
+        return
     cfg = load_config(args.config)
     state = State(cfg.paths.state_file)
 

@@ -54,6 +54,13 @@ skips the classes, and adds the sermons to the podcast. You'll find:
 
 GitHub emails you, and notifies you in its app, if a run fails.
 
+**Cover art with his photo.** In the repo, tap *Add file → Upload files*, upload
+the photo, and name it `photo.jpg` inside the `cloud` folder (`cloud/photo.jpg`).
+The next run turns it into 3000×3000 cover art: the photo full-bleed, with
+"SERMONS / Joshua Adams / Mountain Home church of Christ" set over a dark
+fade at the bottom. On a computer, `sermonpod cover photo.jpg` makes the
+same image locally.
+
 **If YouTube blocks GitHub's servers** (the run fails with "found no videos" or
 "Sign in to confirm you're not a bot"), add your YouTube cookies. On any
 computer, sign in to YouTube and export cookies with a "Get cookies.txt"
