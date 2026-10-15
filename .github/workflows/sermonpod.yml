@@ -17,6 +17,7 @@ on:
           - add             # include a video it skipped
           - retry           # try a failed video again
           - backfill        # process up to 20 older services in one go
+          - check           # safe test: only list the channel's services, publish nothing
       video_ids:
         description: Video ID(s), separated by spaces (for voice yes / voice no / add / retry)
         type: string
@@ -95,8 +96,13 @@ jobs:
           if [ -n "$ids" ] && ! echo "$ids" | grep -Eq '^[A-Za-z0-9_-]{11}( [A-Za-z0-9_-]{11})*$'; then
             echo "::error::Video IDs look wrong: '$ids' (each is 11 characters, like dQw4w9WgXcQ)"; exit 1
           fi
+          if [ -z "$ANTHROPIC_API_KEY" ] && [ "$COMMAND" != check ] && [ "$COMMAND" != "voice no" ]; then
+            echo "::error::Add your Claude key first: Settings > Secrets and variables > Actions > New repository secret, named ANTHROPIC_API_KEY"
+            exit 1
+          fi
           needs_ids() { if [ -z "$ids" ]; then echo "::error::'$COMMAND' needs at least one video ID"; exit 1; fi; }
           case "$COMMAND" in
+            check)     sermonpod -c "$CONFIG" discover ;;
             run)       sermonpod -c "$CONFIG" run --limit 8 ;;
             backfill)  sermonpod -c "$CONFIG" run --limit 20 ;;
             "voice yes") needs_ids; sermonpod -c "$CONFIG" voice yes $ids
@@ -132,7 +138,7 @@ jobs:
           git push origin HEAD:sermonpod-data
 
       - name: Prepare site
-        if: always()
+        if: always() && github.event.inputs.command != 'check'
         run: |
           [ -f output/podcast/feed.xml ] || sermonpod -c "$CONFIG" feed
           # cover art: built from his photo if one has been uploaded, else the plain cover
@@ -145,13 +151,13 @@ jobs:
           rm -rf output/podcast/episodes   # audio is served from the release
 
       - uses: actions/upload-pages-artifact@v3
-        if: always()
+        if: always() && github.event.inputs.command != 'check'
         with:
           path: output/podcast
 
   publish:
     needs: build
-    if: always() && needs.build.result != 'cancelled'
+    if: always() && needs.build.result != 'cancelled' && github.event.inputs.command != 'check'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
