@@ -54,7 +54,7 @@ def test_discover_classifies(tmp_path, monkeypatch):
         "c": {"title": "Announcements", "duration": 120, "upload_date": "20260104"},
         "d": {"title": "Joshua Adams", "duration": 3000, "upload_date": "20200101"},
     }
-    monkeypatch.setattr(youtube, "list_channel", lambda src: [{"id": k} for k in infos])
+    monkeypatch.setattr(youtube, "list_channel", lambda src, newest=None: [{"id": k} for k in infos])
     monkeypatch.setattr(youtube, "video_details", lambda src, vid: infos[vid])
     state = State(tmp_path / "s.json")
     youtube.discover(Source(channel_url="x", name_patterns=["Joshua Adams"], since="20250101"), state)
@@ -171,7 +171,7 @@ def test_pipeline_end_to_end(tmp_path, monkeypatch):
         out.write_bytes(service.read_bytes())
         return out
 
-    monkeypatch.setattr(youtube, "list_channel", lambda src: [{"id": "vid1"}])
+    monkeypatch.setattr(youtube, "list_channel", lambda src, newest=None: [{"id": "vid1"}])
     monkeypatch.setattr(youtube, "video_details", lambda src, vid: {
         "title": "Living Faith | Joshua Adams", "duration": 2700, "upload_date": "20261011",
         "webpage_url": "https://www.youtube.com/watch?v=vid1"})

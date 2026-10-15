@@ -200,10 +200,10 @@ def confirm(cfg: Config, state: State, video_ids: list[str], is_him: bool) -> No
 
 
 def run(cfg: Config, *, discover: bool = True, limit: int | None = None,
-        keep_raw: bool = False) -> None:
+        keep_raw: bool = False, scan: int | None = None) -> None:
     state = State(cfg.paths.state_file)
     if discover:
-        youtube.discover(cfg.source, state)
+        youtube.discover(cfg.source, state, newest=scan)
 
     todo_statuses = ["matched"] + (["unnamed"] if cfg.source.check_unnamed_videos else [])
     todo = sorted(state.with_status(*todo_statuses), key=lambda v: v["upload_date"], reverse=True)

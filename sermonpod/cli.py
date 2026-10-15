@@ -16,12 +16,14 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("-v", "--verbose", action="store_true")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("discover", help="scan the channel and classify new videos")
+    disc = sub.add_parser("discover", help="scan the channel and classify new videos")
+    disc.add_argument("--scan", type=int, help="only look at the newest N videos")
 
     run = sub.add_parser("run", help="discover, process new sermons and rebuild the feed")
     run.add_argument("--no-discover", action="store_true", help="only process already-known videos")
     run.add_argument("--limit", type=int, help="process at most N videos (newest first)")
     run.add_argument("--keep-raw", action="store_true", help="keep the downloaded service audio")
+    run.add_argument("--scan", type=int, help="only look at the newest N videos on the channel")
 
     sub.add_parser("feed", help="rebuild feed.xml from finished episodes")
     sub.add_parser("status", help="list known videos and their status")
@@ -63,10 +65,11 @@ def main(argv: list[str] | None = None) -> None:
     state = State(cfg.paths.state_file)
 
     if args.cmd == "discover":
-        added = youtube.discover(cfg.source, state)
+        added = youtube.discover(cfg.source, state, newest=args.scan)
         print(f"{len(added)} new video(s) found")
     elif args.cmd == "run":
-        pipeline.run(cfg, discover=not args.no_discover, limit=args.limit, keep_raw=args.keep_raw)
+        pipeline.run(cfg, discover=not args.no_discover, limit=args.limit, keep_raw=args.keep_raw,
+                     scan=args.scan)
     elif args.cmd == "feed":
         print(pipeline.write_feed(cfg, state))
     elif args.cmd == "status":

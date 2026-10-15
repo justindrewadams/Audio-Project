@@ -32,11 +32,13 @@ def names_preacher(info: dict, matcher: re.Pattern) -> bool:
     return bool(matcher.search(text))
 
 
-def list_channel(source: Source) -> list[dict]:
-    """Flat listing (id + title) of every video on the configured channel tabs."""
+def list_channel(source: Source, newest: int | None = None) -> list[dict]:
+    """Flat listing (id + title) of the videos on the configured channel tabs,
+    optionally only the `newest` few of each (YouTube lists newest first)."""
     base = source.channel_url.rstrip("/")
     seen: dict[str, dict] = {}
-    with yt_dlp.YoutubeDL(_ydl_opts(source, extract_flat="in_playlist")) as ydl:
+    extra = {"playlistend": newest} if newest else {}
+    with yt_dlp.YoutubeDL(_ydl_opts(source, extract_flat="in_playlist", **extra)) as ydl:
         for tab in source.tabs:
             info = ydl.extract_info(f"{base}/{tab}", download=False)
             for entry in (info or {}).get("entries") or []:
@@ -93,11 +95,12 @@ def classify(info: dict, source: Source, matcher: re.Pattern) -> tuple[str, str,
     return "unnamed", "preacher not named in metadata", record
 
 
-def discover(source: Source, state: State) -> list[dict]:
-    """Classify new channel videos. Returns the entries newly added to state."""
+def discover(source: Source, state: State, newest: int | None = None) -> list[dict]:
+    """Classify new channel videos (only the `newest` few per tab, if given).
+    Returns the entries newly added to state."""
     matcher = compile_matcher(source.name_patterns)
     added = []
-    entries = list_channel(source)
+    entries = list_channel(source, newest)
     if not entries:
         raise RuntimeError(f"found no videos at {source.channel_url}. If this keeps happening, "
                            "YouTube is probably blocking this computer; see 'cookies' in the README.")

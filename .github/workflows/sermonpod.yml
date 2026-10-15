@@ -12,6 +12,7 @@ on:
         default: run
         options:
           - run             # check for new services and process them
+          - test            # process only the most recent Sunday service
           - voice yes       # these videos ARE his sermons
           - voice no        # these videos are NOT his sermons
           - add             # include a video it skipped
@@ -102,8 +103,9 @@ jobs:
           fi
           needs_ids() { if [ -z "$ids" ]; then echo "::error::'$COMMAND' needs at least one video ID"; exit 1; fi; }
           case "$COMMAND" in
-            check)     sermonpod -c "$CONFIG" discover ;;
-            run)       sermonpod -c "$CONFIG" run --limit 8 ;;
+            check)     sermonpod -c "$CONFIG" discover --scan 30 ;;
+            test)      sermonpod -c "$CONFIG" run --scan 8 --limit 1 ;;
+            run)       sermonpod -c "$CONFIG" run --scan 30 --limit 8 ;;
             backfill)  sermonpod -c "$CONFIG" run --limit 20 ;;
             "voice yes") needs_ids; sermonpod -c "$CONFIG" voice yes $ids
                          sermonpod -c "$CONFIG" run --no-discover --limit 8 ;;
