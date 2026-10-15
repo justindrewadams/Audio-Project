@@ -78,7 +78,7 @@ def discover(source: Source, state: State) -> list[dict]:
             status, reason = "matched", "named in title/description"
         else:
             status, reason = "unnamed", "preacher not named in metadata"
-        added.append(state.upsert(vid, status=status, reason=reason, **record))
+        added.append(state.upsert(vid, status=status, reason=reason, named=status == "matched", **record))
         log.info("%-8s %s  %s", status, vid, record["title"])
     return added
 

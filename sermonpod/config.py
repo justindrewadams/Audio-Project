@@ -38,6 +38,25 @@ class Enhance:
 
 
 @dataclass
+class Voice:
+    enabled: bool = True
+    model_url: str = ("https://github.com/k2-fsa/sherpa-onnx/releases/download/"
+                      "speaker-recongition-models/wespeaker_en_voxceleb_resnet34_LM.onnx")
+    min_sermons: int = 3          # profile starts deciding once this many are enrolled
+    max_sermons: int = 60         # keep the most recent N (follows mic/room changes)
+    auto_enroll: bool = True      # learn from every sermon confirmed as his
+    threshold: float = 0.0        # 0 = calibrate automatically
+    margin: float = 0.08          # scores just under the cutoff count as "unknown"
+    # Starting the profile with no confirmed sermons: sermons whose average voices are
+    # at least this similar count as the same man, and the biggest such group is
+    # taken to be the regular preacher.
+    bootstrap_similarity: float = 0.7
+    windows_per_sermon: int = 24
+    window_seconds: float = 6.0
+    other_windows: int = 12
+
+
+@dataclass
 class Podcast:
     title: str
     author: str
@@ -74,6 +93,10 @@ class Paths:
         return self.work_dir / "state.json"
 
     @property
+    def voice_dir(self) -> Path:
+        return self.work_dir / "voice"
+
+    @property
     def episodes_dir(self) -> Path:
         return self.output_dir / "episodes"
 
@@ -85,6 +108,7 @@ class Config:
     enhance: Enhance
     podcast: Podcast
     paths: Paths
+    voice: Voice = field(default_factory=Voice)
 
 
 def _build(cls, data: dict):
@@ -104,4 +128,5 @@ def load_config(path: str | Path) -> Config:
         enhance=_build(Enhance, raw.get("enhance", {})),
         podcast=_build(Podcast, raw.get("podcast", {})),
         paths=_build(Paths, raw.get("paths", {})),
+        voice=_build(Voice, raw.get("voice", {})),
     )

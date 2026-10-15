@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 
-from . import pipeline, youtube
+from . import pipeline, voice, youtube
 from .config import load_config
 from .state import State
 
@@ -34,6 +34,16 @@ def main(argv: list[str] | None = None) -> None:
     retry = sub.add_parser("retry", help="re-queue a failed or rejected video")
     retry.add_argument("video_id")
 
+    vp = sub.add_parser("voice", help="manage the preacher's voice profile")
+    vsub = vp.add_subparsers(dest="voice_cmd", required=True)
+    vsub.add_parser("status", help="show the profile and every video's voice score")
+    yes = vsub.add_parser("yes", help="these videos ARE his sermons (teaches the profile)")
+    yes.add_argument("video_ids", nargs="+")
+    no = vsub.add_parser("no", help="these videos are NOT his sermons (teaches the profile)")
+    no.add_argument("video_ids", nargs="+")
+    vsub.add_parser("bootstrap", help="start the profile from the voice heard in most services")
+    vsub.add_parser("recheck", help="re-score all processed videos with the current profile")
+
     args = p.parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(levelname)-7s %(message)s")
@@ -49,8 +59,9 @@ def main(argv: list[str] | None = None) -> None:
         print(pipeline.write_feed(cfg, state))
     elif args.cmd == "status":
         for v in sorted(state.videos.values(), key=lambda v: v.get("upload_date", "")):
-            print(f"{v.get('upload_date', ''):8}  {v['status']:8}  {v['id']}  {v.get('title', '')[:60]}"
-                  f"  ({v.get('reason', '')})")
+            score = "" if v.get("voice_score") is None else f"  voice {v['voice_score']:.2f}"
+            print(f"{v.get('upload_date', ''):8}  {v['status']:8}  {v['id']}  {v.get('title', '')[:50]}"
+                  f"  ({v.get('reason', '')}){score}")
     elif args.cmd == "add":
         if not state.get(args.video_id):
             info = youtube.video_details(cfg.source, args.video_id)
@@ -60,7 +71,7 @@ def main(argv: list[str] | None = None) -> None:
                          upload_date=info.get("upload_date") or "", duration=info.get("duration") or 0,
                          thumbnail=info.get("thumbnail") or "",
                          url=info.get("webpage_url") or f"https://www.youtube.com/watch?v={args.video_id}")
-        fields = {"status": "matched", "reason": "added manually"}
+        fields = {"status": "matched", "reason": "added manually", "forced": True}
         if args.start is not None and args.end is not None:
             fields.update(manual_start=args.start, manual_end=args.end)
         state.upsert(args.video_id, **fields)
@@ -70,6 +81,45 @@ def main(argv: list[str] | None = None) -> None:
             raise SystemExit(f"unknown video {args.video_id}")
         state.upsert(args.video_id, status="matched", reason="retry")
         print(f"re-queued {args.video_id}")
+    elif args.cmd == "voice":
+        voice_command(cfg, state, args)
+
+
+def voice_command(cfg, state, args) -> None:
+    if args.voice_cmd == "yes":
+        pipeline.confirm(cfg, state, args.video_ids, is_him=True)
+    elif args.voice_cmd == "no":
+        pipeline.confirm(cfg, state, args.video_ids, is_him=False)
+    elif args.voice_cmd == "bootstrap":
+        group = pipeline.bootstrap_profile(cfg, state)
+        if not group:
+            print("no single voice dominates the processed services yet; process more, "
+                  "or confirm a few with `sermonpod voice yes VIDEO_ID ...`")
+            return
+        print(f"enrolled {len(group)} sermons that share one voice:")
+        for vid in group:
+            print(f"  {vid}  {state.get(vid).get('title', '')}")
+        print("if any of these aren't him, run `sermonpod voice no VIDEO_ID`")
+    if args.voice_cmd in ("yes", "no", "bootstrap", "recheck"):
+        for vid, old, new in pipeline.recheck(cfg, state):
+            print(f"recheck: {vid}  {old} -> {new}  ({state.get(vid)['reason']})")
+    if args.voice_cmd == "status":
+        profile = voice.Profile(cfg.paths.voice_dir, cfg.voice)
+        need = max(cfg.voice.min_sermons - len(profile.enrolled), 0)
+        print(f"enrolled sermons: {len(profile.enrolled)}" + (f" (needs {need} more to start deciding)" if need else ""))
+        print(f"known other speakers: {len(profile.impostors)}")
+        if profile.ready:
+            print(f"cutoff: {profile.threshold:.2f}  (unsure between {profile.threshold - cfg.voice.margin:.2f} "
+                  f"and {profile.threshold:.2f})")
+            print(f"calibration: {profile.stats}")
+        print()
+        for v in sorted(state.videos.values(), key=lambda v: v.get("upload_date", "")):
+            if v.get("voice_score") is None and v["id"] not in profile.enrolled:
+                continue
+            tag = "enrolled" if v["id"] in profile.enrolled else ("other" if v["id"] in profile.impostors else "")
+            score = "  -  " if v.get("voice_score") is None else f"{v['voice_score']:.2f}"
+            print(f"{v.get('upload_date', ''):8}  {score}  {v['status']:8}  {tag:8}  {v['id']}  "
+                  f"{v.get('title', '')[:50]}")
 
 
 if __name__ == "__main__":

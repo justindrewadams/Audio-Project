@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from sermonpod import enhance, feed, segment, youtube
-from sermonpod.config import Enhance, Podcast, Source
+from sermonpod.config import Enhance, Podcast, Source, Voice
 from sermonpod.state import State
 
 
@@ -184,6 +184,7 @@ def test_pipeline_end_to_end(tmp_path, monkeypatch):
         enhance=Enhance(),
         podcast=Podcast(title="P", author="A", description="D", base_url="https://ex.com"),
         paths=Paths(work_dir=tmp_path / "data", output_dir=tmp_path / "out"),
+        voice=Voice(enabled=False),
     )
     pipeline.run(cfg)
 
@@ -223,6 +224,7 @@ def test_unnamed_livestream_preacher_policy(tmp_path, monkeypatch, match, policy
         trim=Trim(), enhance=Enhance(),
         podcast=Podcast(title="P", author="A", description="D", base_url="https://ex.com"),
         paths=Paths(work_dir=tmp_path / "data", output_dir=tmp_path / "out"),
+        voice=Voice(enabled=False),
     )
     state = State(cfg.paths.state_file)
     video = state.upsert("v", status="unnamed", title="Sunday Morning Worship",

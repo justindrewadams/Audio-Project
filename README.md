@@ -4,10 +4,9 @@ Turns Joshua Adams's sermons on the Mountain Home church of Christ YouTube chann
 into a podcast:
 
 1. **Find**: scans the channel's Live tab, where each full worship service is
-   recorded. Livestream titles rarely name the speaker, so Claude works out from
-   each service who preached. It listens for introductions, people addressing
-   him by name, and similar clues. Services where someone else clearly preached
-   are skipped.
+   recorded. To decide whether Joshua preached, it combines three clues: his
+   name in the title, what the service itself says (introductions, people
+   addressing him), and **his voice** (see below).
 2. **Download**: pulls the audio with `yt-dlp`.
 3. **Trim**: transcribes the service with Whisper. Claude then reads the
    timestamped transcript and marks where the sermon starts and ends, which cuts
@@ -68,6 +67,43 @@ fees) or Amazon S3 work well:
 ```bash
 aws s3 sync output/podcast s3://my-bucket/podcast --acl public-read
 ```
+
+## Voice profile
+
+The app learns what Joshua sounds like and uses that to tell his sermons from
+guest speakers', even when nobody says who is preaching.
+
+- **How it works.** A speaker-recognition model turns every few seconds of a
+  sermon into a voiceprint. His profile is the average of his sermons. A new
+  sermon is compared against it and gets a score from about 0.3 (a different
+  man) to 1.0 (an identical voice).
+- **It starts itself.** He is the regular preacher, so after the first few
+  services the app finds the one voice that preaches most of them and builds
+  the profile from those sermons. It then rechecks everything already
+  processed. Any episode that turns out to be someone else is held for review
+  and is not left in the feed.
+- **It keeps learning.** Every sermon confirmed as his is added to the profile,
+  which keeps his 60 most recent sermons. That lets it follow changes in
+  microphone or room.
+- **It sets its own cutoff.** The cutoff between "him" and "not him" is
+  calibrated from your recordings. The app compares how closely his own sermons
+  match the profile with how closely the other men in the same services do
+  (prayers, readings, announcements). This matters because everyone shares the
+  same microphone and room.
+- **Disagreements go to you.** If the voice and the service disagree (for
+  example the title names him but the voice doesn't match), the video is marked
+  `review` instead of guessed.
+
+```bash
+sermonpod voice status            # profile size, cutoff, and every video's score
+sermonpod voice yes VIDEO_ID ...  # these ARE his: adds to profile / restores to feed
+sermonpod voice no VIDEO_ID ...   # these are NOT his: removes from feed, teaches the profile
+sermonpod voice bootstrap         # start the profile now instead of waiting
+sermonpod voice recheck           # re-score everything with the current profile
+```
+
+The speaker model (26 MB) downloads on first use. Set `[voice] enabled = false`
+to turn this off.
 
 ## Notes and limits
 
