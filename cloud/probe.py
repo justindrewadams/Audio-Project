@@ -8,6 +8,9 @@ import yt_dlp
 
 channel = sys.argv[1].rstrip("/")
 base = {"quiet": True, "no_warnings": True}
+if os.path.exists("cookies.txt"):
+    base["cookiefile"] = "cookies.txt"
+    print("using cookies from the YT_COOKIES secret")
 if os.environ.get("SERMONPOD_PROXY"):
     base["proxy"] = os.environ["SERMONPOD_PROXY"]
     print("using the proxy from the YT_PROXY secret")
